@@ -306,22 +306,20 @@ general_tx(Operations, Clock, Pid) ->
                 case Operation of
                     {read, Key, Type} ->
                         Mod = antidotec_datatype:module_for_type(Type),
-                        lager:info("Encoding read for ~w",[Key]),
                         Mod:message_for_get(Key);
                     {update, Key, Type, Op, Param} ->
                         Mod = antidotec_datatype:module_for_type(Type),
                         Obj = Mod:Op(Param, Mod:new(Key)),
-                        lager:info("Encoding update for ~w ~w ~w",[Key, Op, Param]),
-                        Mod:to_ops(Obj)
+                        [UpdateOp] = Mod:to_ops(Obj),
+                        UpdateOp
                 end
               end,
-    Operations = lists:foldl(fun(List, Acc) -> [lists:map(MapFun, List)|Acc] end, [], Operations),
-    lager:info("All operations are ~w",[Operations]),
+    ConvertedOps = lists:foldl(fun(List, Acc) ->  [lists:map(MapFun, List)|Acc] end, [], Operations),
     TxnRequest =  case Clock of 
                       ignore ->
-                          #fpbatomicupdatetxnreq{clock=term_to_binary(ignore),ops=encode_general_tx(Operations)};
+                          #fpbatomicupdatetxnreq{clock=term_to_binary(ignore),ops=encode_general_tx(ConvertedOps)};
                       _ ->
-                          #fpbatomicupdatetxnreq{clock=Clock,ops=encode_general_tx(Operations)}
+                          #fpbatomicupdatetxnreq{clock=Clock,ops=encode_general_tx(ConvertedOps)}
                   end,
     Result = call_infinity(Pid, {req, TxnRequest, ?TIMEOUT}),
     case Result of
@@ -379,7 +377,9 @@ encode_au_txn_op(Op=#fpbsetupdatereq{}) ->
 
 
 encode_general_tx(Operations) ->
-    lists:map(fun(Op) -> encode_general_tx_op(Op) end, Operations).
+    lists:foldl(fun(List, Acc) -> 
+            [lists:map(fun(Op) -> encode_general_tx_op(Op) end, 
+            List)|Acc] end, [], Operations).
     
 encode_general_tx_op(Op=#fpbincrementreq{}) ->
     #fpbatomicupdatetxnop{counterinc=Op};
