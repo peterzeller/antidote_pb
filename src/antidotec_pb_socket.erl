@@ -378,7 +378,7 @@ encode_au_txn_op(Op=#fpbsetupdatereq{}) ->
 
 encode_general_txn(Operations) ->
     lists:foldl(fun(List, Acc) -> 
-            [lists:map(fun(Op) -> encode_general_txn_op(Op) end, 
+            [lists:map(fun(Op) -> #fpbgeneraltxnlist{op=encode_general_txn_op(Op)} end, 
             List)|Acc] end, [], Operations).
     
 encode_general_txn_op(Op=#fpbincrementreq{}) ->
