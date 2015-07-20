@@ -317,9 +317,9 @@ general_tx(Operations, Clock, Pid) ->
     ConvertedOps = lists:foldl(fun(List, Acc) ->  [lists:map(MapFun, List)|Acc] end, [], Operations),
     TxnRequest =  case Clock of 
                       ignore ->
-                          #fpbatomicupdatetxnreq{clock=term_to_binary(ignore),ops=encode_general_txn(ConvertedOps)};
+                          #fpbgeneraltxnreq{clock=term_to_binary(ignore),ops=encode_general_txn(ConvertedOps)};
                       _ ->
-                          #fpbatomicupdatetxnreq{clock=Clock,ops=encode_general_txn(ConvertedOps)}
+                          #fpbgeneraltxnreq{clock=Clock,ops=encode_general_txn(ConvertedOps)}
                   end,
     Result = call_infinity(Pid, {req, TxnRequest, ?TIMEOUT}),
     case Result of
@@ -382,15 +382,15 @@ encode_general_txn(Operations) ->
             List)|Acc] end, [], Operations).
     
 encode_general_txn_op(Op=#fpbincrementreq{}) ->
-    #fpbatomicupdatetxnop{counterinc=Op};
+    #fpbgeneraltxnop{counterinc=Op};
 encode_general_txn_op(Op=#fpbdecrementreq{}) ->
-    #fpbatomicupdatetxnop{counterdec=Op};
+    #fpbgeneraltxnop{counterdec=Op};
 encode_general_txn_op(Op=#fpbsetupdatereq{}) ->
-    #fpbatomicupdatetxnop{setupdate=Op};
+    #fpbgeneraltxnop{setupdate=Op};
 encode_general_txn_op(Op=#fpbgetcounterreq{}) ->
-    #fpbsnapshotreadtxnop{counter=Op};
+    #fpbgeneraltxnop{counter=Op};
 encode_general_txn_op(Op=#fpbgetsetreq{}) ->
-    #fpbsnapshotreadtxnop{set=Op}.
+    #fpbgeneraltxnop{set=Op}.
 
 %% Encode Snapshot read request into the
 %% pb request message record to be serialized
