@@ -19,12 +19,13 @@
 %% -------------------------------------------------------------------
 -module(antidotec_pb_socket).
 
--include_lib("include/antidote_pb.hrl").
+-include_lib("riak_pb/include/antidote_pb.hrl").
 
 -behaviour(gen_server).
 
 -define(FIRST_RECONNECT_INTERVAL, 100).
 -define(TIMEOUT, 30000).
+
 
 %% The TCP/IP host name or address of the Riak node
 -type address() :: string() | atom() | inet:ip_address().
@@ -59,7 +60,9 @@
          store_crdt/2,
          get_crdt/3,
          atomic_store_crdts/2,
-         snapshot_get_crdts/2
+         atomic_store_crdts/3,
+         snapshot_get_crdts/2,
+         snapshot_get_crdts/3
         ]).
 
 %% @private
@@ -283,7 +286,7 @@ atomic_store_crdts(Objects, Clock, Pid) ->
     Operations = lists:foldl(FoldFun, [], Objects),
     TxnRequest =  case Clock of 
                       ignore ->
-                          #fpbatomicupdatetxnreq{ops=encode_au_txn_ops(Operations)};
+                          #fpbatomicupdatetxnreq{clock=term_to_binary(ignore),ops=encode_au_txn_ops(Operations)};
                       _ ->
                           #fpbatomicupdatetxnreq{clock=Clock,ops=encode_au_txn_ops(Operations)}
                   end,
@@ -308,9 +311,9 @@ snapshot_get_crdts(Objects, Clock, Pid) ->
     Operations = lists:map(MapFun, Objects),
     TxnRequest = case Clock of 
                      ignore -> 
-                         #fpbsnapshotreadtxnreq{ops=encode_snapshot_read_ops(Operations)};
+                         #fpbsnapshotreadtxnreq{clock=term_to_binary(ignore), ops=encode_snapshot_read_ops(Operations)};
                      _ ->
-                         #fpbsnapshotreadtxnreq{clock=Clock,ops=encode_snapshot_read_ops(Operations)}
+                         #fpbsnapshotreadtxnreq{clock=Clock, ops=encode_snapshot_read_ops(Operations)}
                  end,
     Result = call_infinity(Pid, {req, TxnRequest, ?TIMEOUT}),
     case Result of
@@ -354,7 +357,7 @@ encode_snapshot_read_op(Op=#fpbgetsetreq{}) ->
 
 %% Decode response of pb request
 decode_response(#fpboperationresp{success = true}) -> ok;
-decode_response(#fpboperationresp{success = false}) -> {error, no_snapshot};
+decode_response(#fpboperationresp{success = false}) -> {error, failed};
 decode_response(#fpbgetcounterresp{value = Val}) ->
     Val;
 decode_response(#fpbgetsetresp{value = Val}) ->
