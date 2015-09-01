@@ -24,7 +24,7 @@
 -behaviour(gen_server).
 
 -define(FIRST_RECONNECT_INTERVAL, 100).
--define(TIMEOUT, 1000).
+-define(TIMEOUT, 10000).
 
 %% The TCP/IP host name or address of the Riak node
 -type address() :: string() | atom() | inet:ip_address().
@@ -264,7 +264,10 @@ get_crdt(Key, Type, Pid) ->
     case call_infinity(Pid, {req, Op, ?TIMEOUT}) of
         {ok, Value} ->
             {ok, Mod:new(Key,Value)};
-        {error, Reason} -> {error, Reason}
+        {error, Reason} ->
+	    {error, Reason};
+	Other ->
+	    {error, Other}
     end.
 
 %% Atomically stores multiple CRDTs converting the object state to a
