@@ -250,7 +250,6 @@ store_crdt(Obj, Pid) ->
         Ops ->
             lists:foldl(fun(Op,Success) ->
                                 Result = call_infinity(Pid, {req, Op, ?TIMEOUT}),
-				lager:info("Result store: ~p", [Result]),
                                 case Result of
                                     ok -> Success;
                                     Other -> Other
@@ -266,7 +265,6 @@ get_crdt(Key, Type, Pid) ->
     Mod = antidotec_datatype:module_for_type(Type),
     Op = Mod:message_for_get(Key),
     Result = call_infinity(Pid, {req, Op, ?TIMEOUT}),
-    lager:info("Result get: ~p, key ~p, pid ~p", [Result, Key, Pid]),
     case Result of
         {ok, Value} ->
             {ok, Mod:new(Key,Value)};
