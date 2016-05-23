@@ -26,7 +26,9 @@
          abort_transaction/2,
          commit_transaction/2,
          update_objects/3,
-         read_objects/3]).
+         read_objects/3,
+	 get_objects/2,
+	 get_log_operations/3]).
 
 -define(TIMEOUT, 10000).
 
@@ -157,6 +159,45 @@ read_objects(Pid, Objects, {static, TxId}) ->
                 {error, Reason} -> {error, Reason}
             end
     end.
+
+
+
+%% Legion stuff
+get_objects(Pid, Objects) ->
+    EncMsg = antidote_pb_codec:encode(get_objects, Objects),
+    Result = antidotec_pb_socket:call_infinity(Pid, {req, EncMsg, ?TIMEOUT}),
+    case Result of
+        {error, timeout} -> {error, timeout};
+        _ ->
+            case antidote_pb_codec:decode_response(Result) of
+                {get_objects, Values} ->
+                    ResObjects = lists:map(
+                                   fun({Type, Val, Timestamp}) ->
+					   %% JSON stuff here?
+					   {Type,Val,Timestamp}
+                                   end, Values),
+                    {ok, ResObjects};
+                {error, Reason} -> {error, Reason}
+            end
+    end.
+
+get_log_operations(Pid, Clock, Objects) ->
+    EncMsg = antidote_pb_codec:encode(get_log_operations, {Clock,Objects}),
+    Result = antidotec_pb_socket:call_infinity(Pid, {req, EncMsg, ?TIMEOUT}),
+    case Result of
+        {error, timeout} -> {error, timeout};
+        _ ->
+            case antidote_pb_codec:decode_response(Result) of
+                {get_log_operations, Values} ->
+                    ResObjects = lists:map(
+                                   fun([Operations]) ->
+					   %% JSON stuff here?
+					   [Operations]
+                                   end, Values),
+                    {ok, ResObjects};
+                {error, Reason} -> {error, Reason}
+            end
+    end.    
     
 is_static(TxnProperties) ->
     case TxnProperties of
