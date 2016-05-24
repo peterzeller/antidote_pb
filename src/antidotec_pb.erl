@@ -172,9 +172,9 @@ get_objects(Pid, Objects) ->
             case antidote_pb_codec:decode_response(Result) of
                 {get_objects, Values} ->
                     ResObjects = lists:map(
-                                   fun(Result) ->
+                                   fun(Res) ->
 					   %% JSON stuff here?
-					   Result
+					   Res
                                    end, Values),
                     {ok, ResObjects};
                 {error, Reason} -> {error, Reason}
