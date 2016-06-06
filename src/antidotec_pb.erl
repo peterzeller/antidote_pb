@@ -163,8 +163,8 @@ read_objects(Pid, Objects, {static, TxId}) ->
 
 
 %% Legion stuff
-get_objects(Pid, Objects) ->
-    EncMsg = antidote_pb_codec:encode(get_objects, Objects),
+get_objects(Pid, Objects, ReplyType) ->
+    EncMsg = antidote_pb_codec:encode(get_objects, {Objects,ReplyType}),
     Result = antidotec_pb_socket:call_infinity(Pid, {req, EncMsg, ?TIMEOUT}),
     case Result of
         {error, timeout} -> {error, timeout};
