@@ -180,8 +180,8 @@ get_objects(Pid, Objects, ReplyType) ->
             end
     end.
 
-get_log_operations(Pid, Clock, Objects) ->
-    EncMsg = antidote_pb_codec:encode(get_log_operations, {Clock,Objects}),
+get_log_operations(Pid, Clock, Objects, ReplyType) ->
+    EncMsg = antidote_pb_codec:encode(get_log_operations, {Clock,Objects,ReplyType}),
     Result = antidotec_pb_socket:call_infinity(Pid, {req, EncMsg, ?TIMEOUT}),
     case Result of
         {error, timeout} -> {error, timeout};
