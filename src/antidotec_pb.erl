@@ -27,7 +27,7 @@
          commit_transaction/2,
          update_objects/3,
          read_objects/3,
-	 get_objects/2,
+	 get_objects/3,
 	 get_log_operations/3]).
 
 -define(TIMEOUT, 10000).
