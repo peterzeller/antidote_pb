@@ -28,7 +28,7 @@
          update_objects/3,
          read_objects/3,
 	 get_objects/3,
-	 get_log_operations/3]).
+	 get_log_operations/4]).
 
 -define(TIMEOUT, 10000).
 
