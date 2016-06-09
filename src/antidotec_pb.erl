@@ -189,8 +189,10 @@ get_log_operations(Pid, ObjectClockTuple, ReplyType) ->
             case antidote_pb_codec:decode_response(Result) of
                 {get_log_operations, Values} ->
                     ResObjects = lists:map(
-                                   fun({log_operations,List}) ->
-					   List
+                                   fun(Operations) ->
+					   lists:map(fun({opid_and_payload,Value}) ->
+							     Value
+						     end, Operations)
                                    end, Values),
                     {ok, ResObjects};
                 {error, Reason} -> {error, Reason}
