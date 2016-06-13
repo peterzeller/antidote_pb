@@ -111,8 +111,8 @@ update_objects(Pid, Updates, {static, TxId}) ->
 
 
 update_objects(Pid, Updates, {interactive, TxId}, ReplyType) ->
-    EncMsg = antidote_pb_codec: encode(update_objects, {Updates, TxId, ReplyType}),
-    Result = antidotec_pb_socket: call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
+    EncMsg = antidote_pb_codec:encode(update_objects, {Updates, TxId, ReplyType}),
+    Result = antidotec_pb_socket:call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
     case Result of
         {error, timeout} -> {error, timeout};
         _ ->
