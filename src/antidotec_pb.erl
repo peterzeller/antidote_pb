@@ -146,7 +146,7 @@ read_objects(Pid, Objects, {static, TxId}) ->
     read_objects(Pid, Objects, {static, TxId}, proto_buf).
 
 read_objects(Pid, Objects, {interactive, TxId}, ReplyType) ->
-    EncMsg = antidote_pb_codec:encode(read_objects, {Objects, TxId}, ReplyType),
+    EncMsg = antidote_pb_codec:encode(read_objects, {Objects, TxId, ReplyType}),
     Result = antidotec_pb_socket:call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
     case Result of
         {error, timeout} -> {error, timeout};
