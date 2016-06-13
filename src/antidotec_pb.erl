@@ -211,7 +211,7 @@ get_log_operations(Pid, ObjectClockTuple, ReplyType) ->
         _ ->
             case antidote_pb_codec:decode_response(Result) of
                 {get_log_operations, Values} ->
-		    lager:format("The get log ops result ~p", [Values]),
+		    lager:info("The get log ops result ~p", [Values]),
                     ResObjects = lists:map(
                                    fun(Operations) ->
 					   lists:map(fun({opid_and_payload,Value}) ->
