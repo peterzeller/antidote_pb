@@ -23,11 +23,18 @@
 
 
 -export([start_transaction/3,
+	 start_transaction/4,
          abort_transaction/2,
+         abort_transaction/3,
          commit_transaction/2,
+         commit_transaction/3,
          update_objects/3,
+         update_objects/4,
          read_objects/3,
+         read_objects/4,
 	 get_objects/3,
+	 get_objects/4,
+	 get_log_operations/4,
 	 get_log_operations/3]).
 
 -define(TIMEOUT, 10000).
