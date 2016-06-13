@@ -33,9 +33,9 @@
          read_objects/3,
          read_objects/4,
 	 get_objects/3,
-	 get_objects/4,
-	 get_log_operations/4,
-	 get_log_operations/3]).
+	 get_objects/2,
+	 get_log_operations/3,
+	 get_log_operations/2]).
 
 -define(TIMEOUT, 10000).
 
@@ -193,6 +193,9 @@ read_objects(Pid, Objects, {static, TxId}, ReplyType) ->
 
 
 %% Legion stuff
+get_objects(Pid, Objects) ->
+    get_objects(Pid, Objects, proto_buf).
+
 get_objects(Pid, Objects, ReplyType) ->
     EncMsg = antidote_pb_codec:encode(get_objects, {Objects,ReplyType}),
     Result = antidotec_pb_socket:call_infinity(Pid, {req, EncMsg, ?TIMEOUT}),
@@ -209,6 +212,9 @@ get_objects(Pid, Objects, ReplyType) ->
                 {error, Reason} -> {error, Reason}
             end
     end.
+
+get_log_operations(Pid, ObjectClockTuple) ->
+    get_log_operations(Pid, ObjectClockTuple, proto_buf).
 
 get_log_operations(Pid, ObjectClockTuple, ReplyType) ->
     EncMsg = antidote_pb_codec:encode(get_log_operations, {ObjectClockTuple,ReplyType}),
