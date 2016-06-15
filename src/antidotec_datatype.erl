@@ -67,7 +67,12 @@
     antidotec_counter | antidotec_set | antidotec_reg.
 module_for_type(set) -> antidotec_set;
 module_for_type(counter)  -> antidotec_counter;
-module_for_type(reg) -> antidotec_reg.
+module_for_type(reg) -> antidotec_reg;
+module_for_type(crdt_orset) -> antidotec_set;
+module_for_type(crdt_pncounter)  -> antidotec_counter;
+module_for_type(riak_dt_orset) -> antidotec_set;
+module_for_type(riak_dt_pncounter)  -> antidotec_counter;
+module_for_type(riak_dt_lwwreg) -> antidotec_reg.
 
 %% @doc Returns the container module name for the given term. 
 %% Returns undefined if the module is not known.
