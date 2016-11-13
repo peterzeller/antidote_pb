@@ -91,13 +91,13 @@
   | {bound_object(set_crdt()), remove_all, [binary()]}
   | {bound_object(antidote_crdt_lwwreg|antidote_crdt_mvreg), assign, binary()}.
 
--opaque timestamp() :: term() | ignore.
+-type timestamp() :: term().
 
 -type txn_properties() :: list().
 
--opaque antidote_pid() :: pid().
+-type antidote_pid() :: pid().
 
--opaque txn_id() :: {interactive, term()} | {static, {timestamp(), txn_properties()}}.
+-type txn_id() :: {interactive, term()} | {static, {timestamp(), txn_properties()}}.
 
 -define(TIMEOUT, 10000).
 
