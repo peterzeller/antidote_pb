@@ -23,16 +23,91 @@
 
 
 -export([start_transaction/3,
+         static_transaction/2,
          abort_transaction/2,
          commit_transaction/2,
          update_objects/3,
          read_objects/3,
          read_values/3]).
 
+-export_type([
+    timestamp/0,
+    antidote_pid/0,
+    txn_id/0,
+    crdt_type/0,
+    bound_object/1,
+    typed_key/1,
+    nested_op/0,
+    operation/0
+]).
+
+-type set_crdt() :: antidote_crdt_set_rw | antidote_crdt_orset.
+
+-type crdt_type() ::
+    antidote_crdt_counter
+  | antidote_crdt_integer
+  | set_crdt()
+  | antidote_crdt_lwwreg
+  | antidote_crdt_mvreg
+  | antidote_crdt_gmap
+  | antidote_crdt_map_aw.
+
+-type bound_object(T) :: % where T :: crdt_type(). 
+    {Key::binary(), T, Bucket::binary()}.
+
+-type typed_key(T) :: % where T :: crdt_type(). 
+    {Key::binary(), T}.
+
+
+-type nested_op() :: 
+    {typed_key(antidote_crdt_counter|antidote_crdt_integer), {increment, integer()}}
+  | {typed_key(antidote_crdt_counter), {decrement, integer()}}
+  | {typed_key(antidote_crdt_integer), {set, integer()}}    
+  | {typed_key(antidote_crdt_gmap|antidote_crdt_map_aw), {update, nested_op()}}
+  | {typed_key(antidote_crdt_gmap|antidote_crdt_map_aw), {update, [nested_op()]}}
+  | {typed_key(antidote_crdt_map_aw), {remove, typed_key(crdt_type())}}
+  | {typed_key(antidote_crdt_map_aw), {remove, [typed_key(crdt_type())]}}
+  | {typed_key(antidote_crdt_map_aw), {batch, {[nested_op()], [typed_key(crdt_type())]}}}
+  | {typed_key(set_crdt()), {add, binary()}}
+  | {typed_key(set_crdt()), {add_all, [binary()]}}
+  | {typed_key(set_crdt()), {remove, binary()}}
+  | {typed_key(set_crdt()), {remove_all, [binary()]}}
+  | {typed_key(antidote_crdt_lwwreg|antidote_crdt_mvreg), {assign, binary()}}.
+
+
+
+-type operation() :: 
+    {bound_object(antidote_crdt_counter|antidote_crdt_integer), increment, integer()}
+  | {bound_object(antidote_crdt_counter), decrement, integer()}
+  | {bound_object(antidote_crdt_integer), set, integer()}    
+  | {bound_object(antidote_crdt_gmap|antidote_crdt_map_aw), update, nested_op()}
+  | {bound_object(antidote_crdt_gmap|antidote_crdt_map_aw), update, [nested_op()]}
+  | {bound_object(antidote_crdt_map_aw), remove, typed_key(crdt_type())}
+  | {bound_object(antidote_crdt_map_aw), remove, [typed_key(crdt_type())]}
+  | {bound_object(antidote_crdt_map_aw), batch, {[nested_op()], [typed_key(crdt_type())]}}
+  | {bound_object(set_crdt()), add, binary()}
+  | {bound_object(set_crdt()), add_all, [binary()]}
+  | {bound_object(set_crdt()), remove, binary()}
+  | {bound_object(set_crdt()), remove_all, [binary()]}
+  | {bound_object(antidote_crdt_lwwreg|antidote_crdt_mvreg), assign, binary()}.
+
+-opaque timestamp() :: term() | ignore.
+
+-type txn_properties() :: list().
+
+-opaque antidote_pid() :: pid().
+
+-opaque txn_id() :: {interactive, term()} | {static, {timestamp(), txn_properties()}}.
+
 -define(TIMEOUT, 10000).
 
--spec start_transaction(Pid::term(), TimeStamp::term(), TxnProperties::term())
-        -> {ok, {interactive, term()} | {static, {term(), term()}}} | {error, term()}.
+-spec static_transaction(timestamp(), txn_properties()) -> txn_id().
+static_transaction(TimeStamp, TxnProperties) ->
+    {static, {TimeStamp, TxnProperties}}.
+
+
+-spec start_transaction(antidote_pid(), timestamp(), txn_properties())
+        -> {ok, txn_id()} | {error, term()}.
 start_transaction(Pid, TimeStamp, TxnProperties) ->
     case is_static(TxnProperties) of
         true -> 
@@ -56,7 +131,7 @@ start_transaction(Pid, TimeStamp, TxnProperties) ->
             end
     end.
 
--spec abort_transaction(Pid::term(), TxId::term()) -> ok.
+-spec abort_transaction(antidote_pid(), txn_id()) -> ok.
 abort_transaction(Pid, {interactive, TxId}) ->
     EncMsg = antidote_pb_codec:encode(abort_transaction, TxId),
     Result = antidotec_pb_socket:call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
@@ -70,8 +145,8 @@ abort_transaction(Pid, {interactive, TxId}) ->
             end
     end.
 
--spec commit_transaction(Pid::term(), TxId::{interactive,term()} | {static,term()}) ->
-                                {ok, term()} | {error, term()}.
+-spec commit_transaction(antidote_pid(), txn_id()) ->
+                                {ok, timestamp()} | {error, term()}.
 commit_transaction(Pid, {interactive, TxId}) ->
     EncMsg = antidote_pb_codec:encode(commit_transaction, TxId),
     Result = antidotec_pb_socket:call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
@@ -90,7 +165,7 @@ commit_transaction(Pid, {static, _TxId}) ->
              {ok, CommitTime}
     end.
 
--spec update_objects(Pid::term(), Updates::[{term(), term(), term()}], TxId::term()) -> ok | {error, term()}.
+-spec update_objects(antidote_pid(), Updates::[operation()], txn_id()) -> ok | {error, term()}.
 update_objects(Pid, Updates, {interactive, TxId}) ->
     EncMsg = antidote_pb_codec: encode(update_objects, {Updates, TxId}),
     Result = antidotec_pb_socket: call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
@@ -120,7 +195,7 @@ update_objects(Pid, Updates, {static, TxId}) ->
             end
     end.
             
--spec read_objects(Pid::term(), Objects::[term()], TxId::term()) -> {ok, [term()]}  | {error, term()}.
+-spec read_objects(antidote_pid(), Objects::[bound_object(crdt_type())], txn_id()) -> {ok, [term()]}  | {error, term()}.
 read_objects(Pid, Objects, Transaction) ->
     case read_values(Pid, Objects, Transaction) of
         {ok, Values} ->
@@ -134,7 +209,7 @@ read_objects(Pid, Objects, Transaction) ->
             Other
     end.
 
--spec read_values(Pid::term(), Objects::[term()], TxId::term()) -> {ok, [term()]}  | {error, term()}.
+-spec read_values(antidote_pid(), Objects::[bound_object(crdt_type())], txn_id()) -> {ok, [term()]}  | {error, term()}.
 read_values(Pid, Objects, {interactive, TxId}) ->
     EncMsg = antidote_pb_codec:encode(read_objects, {Objects, TxId}),
     Result = antidotec_pb_socket:call_infinity(Pid, {req, EncMsg, ?TIMEOUT}),
