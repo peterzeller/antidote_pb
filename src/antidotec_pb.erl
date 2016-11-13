@@ -31,9 +31,9 @@
          read_values/3]).
 
 -export_type([
-    timestamp/0,
+    snapshot_time/0,
     antidote_pid/0,
-    txn_id/0,
+    txid/0,
     crdt_type/0,
     bound_object/1,
     typed_key/1,
@@ -91,23 +91,19 @@
   | {bound_object(set_crdt()), remove_all, [binary()]}
   | {bound_object(antidote_crdt_lwwreg|antidote_crdt_mvreg), assign, binary()}.
 
--type timestamp() :: term().
+-type snapshot_time() :: term().
 
 -type txn_properties() :: list().
 
 -type antidote_pid() :: pid().
 
--type txn_id() :: {interactive, term()} | {static, {timestamp(), txn_properties()}}.
+-type txid() :: {interactive, term()} | {static, {snapshot_time(), txn_properties()}}.
 
 -define(TIMEOUT, 10000).
 
--spec static_transaction(timestamp(), txn_properties()) -> txn_id().
-static_transaction(TimeStamp, TxnProperties) ->
-    {static, {TimeStamp, TxnProperties}}.
 
-
--spec start_transaction(antidote_pid(), timestamp(), txn_properties())
-        -> {ok, txn_id()} | {error, term()}.
+-spec start_transaction(antidote_pid(), snapshot_time(), txn_properties())
+        -> {ok, txid()} | {error, term()}.
 start_transaction(Pid, TimeStamp, TxnProperties) ->
     case is_static(TxnProperties) of
         true -> 
@@ -131,7 +127,7 @@ start_transaction(Pid, TimeStamp, TxnProperties) ->
             end
     end.
 
--spec abort_transaction(antidote_pid(), txn_id()) -> ok.
+-spec abort_transaction(antidote_pid(), txid()) -> ok.
 abort_transaction(Pid, {interactive, TxId}) ->
     EncMsg = antidote_pb_codec:encode(abort_transaction, TxId),
     Result = antidotec_pb_socket:call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
@@ -145,8 +141,8 @@ abort_transaction(Pid, {interactive, TxId}) ->
             end
     end.
 
--spec commit_transaction(antidote_pid(), txn_id()) ->
-                                {ok, timestamp()} | {error, term()}.
+-spec commit_transaction(antidote_pid(), txid()) ->
+                                {ok, snapshot_time()} | {error, term()}.
 commit_transaction(Pid, {interactive, TxId}) ->
     EncMsg = antidote_pb_codec:encode(commit_transaction, TxId),
     Result = antidotec_pb_socket:call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
@@ -165,7 +161,7 @@ commit_transaction(Pid, {static, _TxId}) ->
              {ok, CommitTime}
     end.
 
--spec update_objects(antidote_pid(), Updates::[operation()], txn_id()) -> ok | {error, term()}.
+-spec update_objects(antidote_pid(), Updates::[operation()], txid()) -> ok | {error, term()}.
 update_objects(Pid, Updates, {interactive, TxId}) ->
     EncMsg = antidote_pb_codec: encode(update_objects, {Updates, TxId}),
     Result = antidotec_pb_socket: call_infinity(Pid,{req, EncMsg, ?TIMEOUT}),
@@ -195,7 +191,7 @@ update_objects(Pid, Updates, {static, TxId}) ->
             end
     end.
             
--spec read_objects(antidote_pid(), Objects::[bound_object(crdt_type())], txn_id()) -> {ok, [term()]}  | {error, term()}.
+-spec read_objects(antidote_pid(), Objects::[bound_object(crdt_type())], txid()) -> {ok, [term()]}  | {error, term()}.
 read_objects(Pid, Objects, Transaction) ->
     case read_values(Pid, Objects, Transaction) of
         {ok, Values} ->
@@ -209,7 +205,7 @@ read_objects(Pid, Objects, Transaction) ->
             Other
     end.
 
--spec read_values(antidote_pid(), Objects::[bound_object(crdt_type())], txn_id()) -> {ok, [term()]}  | {error, term()}.
+-spec read_values(antidote_pid(), Objects::[bound_object(crdt_type())], txid()) -> {ok, [term()]}  | {error, term()}.
 read_values(Pid, Objects, {interactive, TxId}) ->
     EncMsg = antidote_pb_codec:encode(read_objects, {Objects, TxId}),
     Result = antidotec_pb_socket:call_infinity(Pid, {req, EncMsg, ?TIMEOUT}),
