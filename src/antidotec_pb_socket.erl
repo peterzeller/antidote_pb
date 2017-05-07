@@ -19,7 +19,6 @@
 %% -------------------------------------------------------------------
 -module(antidotec_pb_socket).
 
--include_lib("riak_pb/include/antidote_pb.hrl").
 
 -behaviour(gen_server).
 

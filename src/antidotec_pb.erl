@@ -19,7 +19,6 @@
 %% -------------------------------------------------------------------
 -module(antidotec_pb).
 
--include_lib("riak_pb/include/antidote_pb.hrl").
 
 
 -export([start_transaction/3,
