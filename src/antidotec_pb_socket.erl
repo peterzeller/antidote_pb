@@ -126,7 +126,7 @@ handle_call(stop, _From, State) ->
 %% @todo handle timeout
 handle_info({_Proto, Sock, Data}, State=#state{active = (Active = #request{})}) ->
     <<MsgCode:8, MsgData/binary>> = Data,
-    Response = riak_pb_codec:decode(MsgCode, MsgData),
+    Response = antidote_pb_codec:decode_msg(MsgCode, MsgData),
     cancel_req_timer(Active#request.tref),
     _ = send_caller(Response, Active),
     NewState = State#state{active = undefined},
@@ -219,7 +219,7 @@ send_request(Request0, State) when State#state.active =:= undefined  ->
 
 %% Unencoded Request (the normal PB client path)
 encode_request_message(#request{msg=Msg}=Req) ->
-    EncMsg = riak_pb_codec:encode(Msg),
+    EncMsg = antidote_pb_codec:encode_msg(Msg),
     {Req, EncMsg}.
     %{Req, riak_pb_codec:encode(Msg)}.
 
